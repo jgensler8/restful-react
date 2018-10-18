@@ -123,6 +123,37 @@ export interface GetState<TData, TError> {
   loading: boolean;
 }
 
+export const resolveData = async <TData, TError>({
+  data,
+  resolve,
+}: {
+  data: any;
+  resolve?: ResolveFunction<TData>;
+}): Promise<{ data: TData | null; error: GetDataError<TError> | null }> => {
+  let resolvedData: TData | null = null;
+  let resolveError: GetDataError<TError> | null = null;
+  try {
+    if (resolve) {
+      const resolvedDataOrPromise: TData | Promise<TData> = resolve(data);
+      resolvedData = (resolvedDataOrPromise as { then?: any }).then
+        ? ((await resolvedDataOrPromise) as TData)
+        : (resolvedDataOrPromise as TData);
+    } else {
+      resolvedData = data;
+    }
+  } catch (err) {
+    resolvedData = null;
+    resolveError = {
+      message: "RESOLVE_ERROR",
+      data: JSON.stringify(err),
+    };
+  }
+  return {
+    data: resolvedData,
+    error: resolveError,
+  };
+};
+
 /**
  * The <Get /> component without Context. This
  * is a named class because it is useful in
@@ -237,27 +268,9 @@ class ContextlessGet<TData, TError> extends React.Component<
       return null;
     }
 
-    let resolvedData: TData | null = null;
-    let resolveError: GetDataError<TError> | null = null;
+    const resolved = await resolveData<TData, TError>({ data, resolve });
 
-    try {
-      if (resolve) {
-        const resolvedDataOrPromise: TData | Promise<TData> = resolve(data);
-        resolvedData = (resolvedDataOrPromise as { then?: any }).then
-          ? ((await resolvedDataOrPromise) as TData)
-          : (resolvedDataOrPromise as TData);
-      } else {
-        resolvedData = data;
-      }
-    } catch (err) {
-      resolvedData = null;
-      resolveError = {
-        message: "RESOLVE_ERROR",
-        data: JSON.stringify(err),
-      };
-    }
-
-    this.setState({ loading: false, data: resolvedData, error: resolveError });
+    this.setState({ loading: false, data: resolved.data, error: resolved.error });
     return data;
   };
 
