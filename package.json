@@ -64,7 +64,7 @@
   },
   "dependencies": {
     "lodash": "^4.17.10",
-    "react": "^16.4.1",
+    "react": "^16.6.0",
     "react-fast-compare": "^2.0.1",
     "url": "^0.11.0"
   },
